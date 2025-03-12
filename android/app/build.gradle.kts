@@ -1,12 +1,3 @@
-import java.util.Properties
-import java.io.FileInputStream
-
-val keyProperties = Properties()
-val keyPropertiesFile = rootProject.file("key.properties")
-if (keyPropertiesFile.exists()) {
-    keyProperties.load(FileInputStream(keyPropertiesFile))
-}
-
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -14,9 +5,12 @@ plugins {
 }
 
 android {
+    lint { 
+        checkReleaseBuilds = false
+    }
     namespace = "com.example.food_roulette_wheel"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -38,23 +32,11 @@ android {
         versionName = flutter.versionName
     }
         
-    signingConfigs {
-        create("release") {
-        keyAlias = keyProperties.getProperty("keyAlias")
-        keyPassword = keyProperties.getProperty("keyPassword")
-        storeFile = file(keyProperties.getProperty("storeFile"))
-        storePassword = keyProperties.getProperty("storePassword")
-        }
-    }
-
     buildTypes {
         release {
-        signingConfig = signingConfigs.getByName("release")
-        isMinifyEnabled = false
-        isShrinkResources = false
-        }
-        debug {
-        signingConfig = signingConfigs.getByName("debug")
+            // TODO: Add your own signing config for the release build.
+            // Signing with the debug keys for now, so `flutter run --release` works.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 }

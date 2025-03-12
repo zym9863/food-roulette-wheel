@@ -55,7 +55,7 @@ class _RouletteWheelState extends State<RouletteWheel> with SingleTickerProvider
 
   void _spinWheel() {
     if (_controller.isAnimating) return;
-    audioPlayer.play(DeviceFileSource('assets/wheel_spin.mp3'));
+    audioPlayer.play(AssetSource('wheel_spin.mp3'));
 
     // 重置动画控制器
     _controller.reset();
