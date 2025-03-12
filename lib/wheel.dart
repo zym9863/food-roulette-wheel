@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class RouletteWheel extends StatefulWidget {
   final List<String> items;
@@ -21,6 +22,7 @@ class _RouletteWheelState extends State<RouletteWheel> with SingleTickerProvider
   final Random _random = Random();
   double _angle = 0.0;
   int _selectedIndex = 0;
+  final AudioPlayer audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -53,6 +55,7 @@ class _RouletteWheelState extends State<RouletteWheel> with SingleTickerProvider
 
   void _spinWheel() {
     if (_controller.isAnimating) return;
+    audioPlayer.play(DeviceFileSource('assets/wheel_spin.mp3'));
 
     // 重置动画控制器
     _controller.reset();

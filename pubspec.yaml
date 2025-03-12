@@ -24,6 +24,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  audioplayers: ^5.2.1
   cupertino_icons: ^1.0.8
   flutter_animate: ^4.5.0  
   simple_animations: ^5.0.2  
@@ -51,5 +52,4 @@ flutter_icons:
 flutter:
   uses-material-design: true
   assets:
-    - assets/image_fx_.jpg
-  
+    - assets/
