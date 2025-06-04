@@ -106,14 +106,11 @@ jobs:
             echo "version=dev-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
           fi
           
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
-          release_name: Food Roulette Wheel ${{ steps.version.outputs.version }}
+          name: Food Roulette Wheel ${{ steps.version.outputs.version }}
           body: |
             ## 🎯 Food Roulette Wheel ${{ steps.version.outputs.version }}
             
@@ -139,45 +136,10 @@ jobs:
             
             ---
             自动构建于 ${{ github.run_number }} - ${{ github.sha }}
+          files: |
+            ./android-release/*.apk
+            ./windows-release/*.zip
           draft: false
           prerelease: false
-          
-      - name: Upload Android APK (ARM64)
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./android-release/app-arm64-v8a-release.apk
-          asset_name: app-arm64-v8a-release.apk
-          asset_content_type: application/vnd.android.package-archive
-          
-      - name: Upload Android APK (ARMv7)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./android-release/app-armeabi-v7a-release.apk
-          asset_name: app-armeabi-v7a-release.apk
-          asset_content_type: application/vnd.android.package-archive
-          
-      - name: Upload Android APK (x86_64)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./android-release/app-x86_64-release.apk
-          asset_name: app-x86_64-release.apk
-          asset_content_type: application/vnd.android.package-archive
-          
-      - name: Upload Windows ZIP
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./windows-release/food-roulette-wheel-windows.zip
-          asset_name: food-roulette-wheel-windows.zip
-          asset_content_type: application/zip
