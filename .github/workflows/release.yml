@@ -1,0 +1,183 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # 触发条件：推送版本标签，如 v1.0.0
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+          
+      - name: Get dependencies
+        run: flutter pub get
+        
+      - name: Build Android APK (split per ABI)
+        run: flutter build apk --release --split-per-abi
+        
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: build/app/outputs/flutter-apk/*.apk
+          
+  build-windows:
+    name: Build Windows EXE
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+          
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+        
+      - name: Get dependencies
+        run: flutter pub get
+        
+      - name: Build Windows
+        run: flutter build windows --release
+        
+      - name: Create Windows installer/archive
+        run: |
+          mkdir release-windows
+          xcopy "build\windows\x64\runner\Release\*" "release-windows\" /E /I /H /Y
+          powershell Compress-Archive -Path "release-windows\*" -DestinationPath "food-roulette-wheel-windows.zip"
+          
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: food-roulette-wheel-windows.zip
+
+  release:
+    name: Create Release
+    needs: [build-android, build-windows]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Download Android artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: ./android-release/
+          
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-exe
+          path: ./windows-release/
+          
+      - name: Get version from tag
+        id: version
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "version=dev-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          release_name: Food Roulette Wheel ${{ steps.version.outputs.version }}
+          body: |
+            ## 🎯 Food Roulette Wheel ${{ steps.version.outputs.version }}
+            
+            ### 📱 Android
+            - `app-arm64-v8a-release.apk` - 适用于现代64位Android设备
+            - `app-armeabi-v7a-release.apk` - 适用于32位ARM Android设备
+            - `app-x86_64-release.apk` - 适用于x86_64 Android设备（模拟器）
+            
+            ### 💻 Windows
+            - `food-roulette-wheel-windows.zip` - Windows桌面版本（解压后运行）
+            
+            ### 安装说明
+            
+            **Android:**
+            1. 下载对应您设备架构的APK文件
+            2. 在设备上启用"未知来源"安装
+            3. 安装APK文件
+            
+            **Windows:**
+            1. 下载Windows zip文件
+            2. 解压到任意文件夹
+            3. 运行 `food_roulette_wheel.exe`
+            
+            ---
+            自动构建于 ${{ github.run_number }} - ${{ github.sha }}
+          draft: false
+          prerelease: false
+          
+      - name: Upload Android APK (ARM64)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./android-release/app-arm64-v8a-release.apk
+          asset_name: app-arm64-v8a-release.apk
+          asset_content_type: application/vnd.android.package-archive
+          
+      - name: Upload Android APK (ARMv7)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./android-release/app-armeabi-v7a-release.apk
+          asset_name: app-armeabi-v7a-release.apk
+          asset_content_type: application/vnd.android.package-archive
+          
+      - name: Upload Android APK (x86_64)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./android-release/app-x86_64-release.apk
+          asset_name: app-x86_64-release.apk
+          asset_content_type: application/vnd.android.package-archive
+          
+      - name: Upload Windows ZIP
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./windows-release/food-roulette-wheel-windows.zip
+          asset_name: food-roulette-wheel-windows.zip
+          asset_content_type: application/zip
